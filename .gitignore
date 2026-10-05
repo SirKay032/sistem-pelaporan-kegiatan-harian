@@ -1,0 +1,65 @@
+# Sistem Pelaporan Kegiatan Harian Pegawai
+
+Aplikasi web sederhana untuk mencatat kegiatan harian pegawai, menilai laporan, dan menghasilkan rekapan bulanan yang dapat diunduh dalam format PDF.
+
+## Fitur utama
+- Login multi-role (Admin, Pegawai, Atasan)
+- Input laporan harian
+- Status laporan: submitted, approved, rejected, revision
+- Dashboard pegawai
+- Rekap bulanan per pegawai
+- Download PDF rekapan bulanan
+- Fitur ini dibuat dengan teknologi gratis/open-source
+
+## Technology stack
+- PHP 8.1+
+- MySQL/MariaDB
+- Bootstrap-like custom CSS (gratis)
+- Dompdf (gratis via Composer)
+
+## Persiapan
+1. Buat database MySQL dengan nama `sistem_pelaporan_pegawai`
+2. Import file `database.sql`
+3. Jalankan `composer install`
+4. Pastikan konfigurasi DB di `config.php` sudah sesuai
+5. Jalankan server PHP
+
+Contoh:
+```bash
+php -S localhost:8000
+```
+
+Lalu buka:
+```text
+http://localhost:8000/index.php
+```
+
+## Default login
+- Admin: `admin@sistem.local` / `password123`
+- Atasan: `ahmad.wijaya@local` / `password123`
+- Pegawai: `joko.supriyanto@local` / `password123`
+
+## Struktur folder
+```text
+.
+├── assets/
+│   └── style.css
+├── composer.json
+├── config.php
+├── database.sql
+├── db.php
+├── download_rekap.php
+├── functions.php
+├── index.php
+├── README.md
+└── vendor/  (setelah composer install)
+```
+
+## Catatan
+Aplikasi ini adalah versi starter yang fokus pada kebutuhan core system: input laporan, approval, dan export PDF rekapan bulanan per pegawai. Anda dapat mengembangkan lebih lanjut ke bentuk Laravel, React, atau aplikasi berbasis web dengan database lebih kompleks.
+
+## Lisensi
+MIT
+
+---
+Dibuat untuk kebutuhan sistem pelaporan kegiatan harian pegawai dengan target fitur rekapan bulanan yang bisa diunduh oleh masing-masing pegawai.

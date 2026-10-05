@@ -1,187 +1,238 @@
--- Database: sistem_pelaporan_pegawai
--- Created: 2026-10-05
--- Description: Database schema untuk Sistem Pelaporan Kegiatan Harian Pegawai
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f3f6fb;
+    color: #1f2937;
+}
 
-CREATE DATABASE IF NOT EXISTS sistem_pelaporan_pegawai;
-USE sistem_pelaporan_pegawai;
+* {
+    box-sizing: border-box;
+}
 
--- =============================================
--- TABLE: unit_kerja
--- =============================================
-CREATE TABLE unit_kerja (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  nama_unit VARCHAR(100) NOT NULL UNIQUE,
-  kepala_unit_id INT,
-  deskripsi TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
+.login-body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1d4ed8, #1e3a8a);
+}
 
--- =============================================
--- TABLE: users
--- =============================================
-CREATE TABLE users (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  nip VARCHAR(20) UNIQUE NOT NULL,
-  nama VARCHAR(100) NOT NULL,
-  email VARCHAR(100) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  role ENUM('admin', 'pegawai', 'atasan') DEFAULT 'pegawai',
-  unit_id INT,
-  atasan_id INT,
-  status ENUM('aktif', 'nonaktif') DEFAULT 'aktif',
-  foto_profil VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (unit_id) REFERENCES unit_kerja(id),
-  FOREIGN KEY (atasan_id) REFERENCES users(id),
-  INDEX idx_role (role),
-  INDEX idx_unit_id (unit_id),
-  INDEX idx_email (email)
-);
+.login-card {
+    width: min(420px, 90vw);
+    background: #fff;
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+}
 
--- =============================================
--- TABLE: laporan_harian
--- =============================================
-CREATE TABLE laporan_harian (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  user_id INT NOT NULL,
-  tanggal DATE NOT NULL,
-  judul VARCHAR(255),
-  deskripsi TEXT,
-  status ENUM('draft', 'submitted', 'approved', 'rejected', 'revision') DEFAULT 'draft',
-  catatan_atasan TEXT,
-  approved_by INT,
-  approved_at DATETIME,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (approved_by) REFERENCES users(id),
-  INDEX idx_user_tanggal (user_id, tanggal),
-  INDEX idx_status (status),
-  INDEX idx_tanggal (tanggal),
-  UNIQUE KEY unique_laporan (user_id, tanggal)
-);
+.login-card h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    text-align: center;
+}
 
--- =============================================
--- TABLE: laporan_detail
--- =============================================
-CREATE TABLE laporan_detail (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  laporan_id INT NOT NULL,
-  kegiatan TEXT NOT NULL,
-  output TEXT,
-  target TEXT,
-  hasil TEXT,
-  waktu_mulai TIME,
-  waktu_selesai TIME,
-  file_bukti VARCHAR(255),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (laporan_id) REFERENCES laporan_harian(id) ON DELETE CASCADE,
-  INDEX idx_laporan_id (laporan_id)
-);
+.login-card form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
 
--- =============================================
--- TABLE: notifikasi
--- =============================================
-CREATE TABLE notifikasi (
-  id INT PRIMARY KEY AUTO_INCREMENT,
-  user_id INT NOT NULL,
-  judul VARCHAR(255) NOT NULL,
-  pesan TEXT,
-  tipe ENUM('info', 'warning', 'success', 'error') DEFAULT 'info',
-  dibaca BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  INDEX idx_user_dibaca (user_id, dibaca),
-  INDEX idx_created_at (created_at)
-);
+.login-card input,
+.login-card button,
+.form-grid input,
+.form-grid textarea,
+.form-grid select,
+.inline-form select,
+button {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid #d1d5db;
+    font-size: 14px;
+}
 
--- =============================================
--- Insert Data Demo
--- =============================================
+.login-card button,
+button {
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
 
--- Insert unit kerja
-INSERT INTO unit_kerja (nama_unit, deskripsi) VALUES
-('Administrasi', 'Bagian Administrasi dan Tata Usaha'),
-('Operasional', 'Bagian Operasional dan Lapangan'),
-('IT & Teknologi', 'Bagian IT dan Infrastruktur');
+.app-shell {
+    display: flex;
+    min-height: 100vh;
+}
 
--- Insert users - Admin
-INSERT INTO users (nip, nama, email, password, role, unit_id, status) VALUES
-('00001', 'Admin Sistem', 'admin@sistem.local', '$2y$10$92IXUNpkio0OVc4.7lChCOYz6TtxMQJqhN8/LewY5YmNrjsnqCnma', 'admin', 1, 'aktif');
+.sidebar {
+    width: 250px;
+    background: #0f172a;
+    color: #fff;
+    padding: 20px 18px;
+}
 
--- Insert users - Atasan (Supervisor)
-INSERT INTO users (nip, nama, email, password, role, unit_id, status) VALUES
-('00002', 'Ahmad Wijaya', 'ahmad.wijaya@local', '$2y$10$92IXUNpkio0OVc4.7lChCOYz6TtxMQJqhN8/LewY5YmNrjsnqCnma', 'atasan', 1, 'aktif'),
-('00003', 'Rini Rahayu', 'rini.rahayu@local', '$2y$10$92IXUNpkio0OVc4.7lChCOYz6TtxMQJqhN8/LewY5YmNrjsnqCnma', 'atasan', 2, 'aktif');
+.sidebar h2 {
+    margin-bottom: 24px;
+    font-size: 28px;
+}
 
--- Insert users - Pegawai
-INSERT INTO users (nip, nama, email, password, role, unit_id, atasan_id, status) VALUES
-('00004', 'Joko Supriyanto', 'joko.supriyanto@local', '$2y$10$92IXUNpkio0OVc4.7lChCOYz6TtxMQJqhN8/LewY5YmNrjsnqCnma', 'pegawai', 1, 2, 'aktif'),
-('00005', 'Dewi Lestari', 'dewi.lestari@local', '$2y$10$92IXUNpkio0OVc4.7lChCOYz6TtxMQJqhN8/LewY5YmNrjsnqCnma', 'pegawai', 1, 2, 'aktif'),
-('00006', 'Eka Putra Wijaya', 'eka.putra@local', '$2y$10$92IXUNpkio0OVc4.7lChCOYz6TtxMQJqhN8/LewY5YmNrjsnqCnma', 'pegawai', 2, 3, 'aktif'),
-('00007', 'Sinta Megawati', 'sinta.megawati@local', '$2y$10$92IXUNpkio0OVc4.7lChCOYz6TtxMQJqhN8/LewY5YmNrjsnqCnma', 'pegawai', 2, 3, 'aktif');
+.sidebar nav {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
 
--- Insert laporan harian demo (Oktober 2026)
-INSERT INTO laporan_harian (user_id, tanggal, judul, deskripsi, status, approved_by, approved_at) VALUES
-(4, '2026-10-01', 'Laporan Kegiatan 1 Oktober 2026', 'Laporan kegiatan rutin', 'approved', 2, NOW()),
-(4, '2026-10-02', 'Laporan Kegiatan 2 Oktober 2026', 'Laporan kegiatan rutin', 'approved', 2, NOW()),
-(4, '2026-10-03', 'Laporan Kegiatan 3 Oktober 2026', 'Laporan kegiatan rutin', 'approved', 2, NOW()),
-(4, '2026-10-04', 'Laporan Kegiatan 4 Oktober 2026', 'Laporan kegiatan rutin', 'submitted', NULL, NULL),
-(5, '2026-10-01', 'Laporan Kegiatan 1 Oktober 2026', 'Laporan kegiatan rutin', 'approved', 2, NOW()),
-(5, '2026-10-02', 'Laporan Kegiatan 2 Oktober 2026', 'Laporan kegiatan rutin', 'approved', 2, NOW()),
-(6, '2026-10-01', 'Laporan Kegiatan 1 Oktober 2026', 'Laporan kegiatan rutin', 'approved', 3, NOW()),
-(6, '2026-10-02', 'Laporan Kegiatan 2 Oktober 2026', 'Laporan kegiatan rutin', 'approved', 3, NOW()),
-(6, '2026-10-03', 'Laporan Kegiatan 3 Oktober 2026', 'Laporan kegiatan rutin', 'submitted', NULL, NULL);
+.sidebar nav a {
+    color: #dbeafe;
+    text-decoration: none;
+    padding: 10px 12px;
+    border-radius: 10px;
+}
 
--- Insert laporan detail
-INSERT INTO laporan_detail (laporan_id, kegiatan, output, target, hasil, waktu_mulai, waktu_selesai) VALUES
-(1, 'Menyusun dokumen rekap perjalanan dinas', '15 dokumen', 'Selesai hari ini', 'Selesai 100%', '08:00:00', '11:00:00'),
-(1, 'Input data ke sistem absensi', 'Data lengkap', 'Selesai hari ini', 'Selesai 100%', '13:00:00', '16:00:00'),
-(2, 'Follow up dokumen yang hilang', '5 dokumen terverifikasi', 'Selesai hari ini', 'Selesai 100%', '08:30:00', '10:30:00'),
-(2, 'Rapat dengan bagian operasional', 'Notulen rapat', 'Selesai hari ini', 'Selesai 100%', '14:00:00', '15:30:00'),
-(3, 'Pembaruan database karyawan', '50 data', 'Selesai hari ini', 'Selesai 90%', '09:00:00', '12:00:00'),
-(3, 'Koordinasi dengan bagian HR', 'Koordinasi selesai', 'Selesai hari ini', 'Selesai 100%', '13:00:00', '14:00:00'),
-(4, 'Menyelesaikan laporan bulanan', 'Laporan draft', 'Selesai hari ini', 'Dalam proses 60%', '08:00:00', '15:00:00'),
-(5, 'Pengarsipan dokumen lama', '100 dokumen', 'Selesai hari ini', 'Selesai 100%', '08:00:00', '11:00:00'),
-(5, 'Input ke sistem manajemen', 'Data terinput', 'Selesai hari ini', 'Selesai 80%', '13:00:00', '16:00:00'),
-(6, 'Persiapan laporan operasional', 'Data terkumpul', 'Selesai hari ini', 'Selesai 100%', '08:30:00', '11:30:00'),
-(7, 'Monitoring lapangan', 'Laporan monitoring', 'Selesai hari ini', 'Selesai 100%', '07:00:00', '15:00:00'),
-(8, 'Inspeksi area kerja', '2 area', 'Inspeksi 2 area', 'Selesai 100%', '08:00:00', '12:00:00'),
-(8, 'Koordinasi dengan tim lapangan', 'Koordinasi selesai', 'Selesai hari ini', 'Selesai 100%', '14:00:00', '16:00:00'),
-(9, 'Pengumpulan data lapangan', 'Data dari 3 lokasi', 'Target: 3 lokasi', 'Selesai 70%', '07:00:00', '16:00:00');
+.sidebar nav a:hover {
+    background: rgba(255,255,255,0.08);
+}
 
--- Insert notifikasi demo
-INSERT INTO notifikasi (user_id, judul, pesan, tipe, dibaca) VALUES
-(2, 'Laporan baru menunggu persetujuan', 'Anda memiliki 2 laporan yang menunggu persetujuan', 'warning', FALSE),
-(4, 'Laporan disetujui', 'Laporan Anda untuk tanggal 2026-10-01 telah disetujui', 'success', TRUE),
-(4, 'Pengingat pengisian laporan', 'Jangan lupa isi laporan kegiatan hari ini', 'info', FALSE),
-(6, 'Laporan ditolak', 'Laporan Anda untuk tanggal 2026-10-03 ditolak dengan catatan: Kurang detail', 'error', FALSE);
+.user-box {
+    margin-top: 40px;
+    background: rgba(255,255,255,0.06);
+    padding: 12px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
 
--- =============================================
--- VIEWS
--- =============================================
+.content {
+    flex: 1;
+    padding: 28px;
+}
 
--- View untuk laporan yang menunggu persetujuan
-CREATE OR REPLACE VIEW v_laporan_menunggu AS
-SELECT 
-  lh.id,
-  lh.user_id,
-  u.nama AS nama_pegawai,
-  u.nip,
-  lh.tanggal,
-  lh.judul,
-  lh.status,
-  lh.created_at
-FROM laporan_harian lh
-JOIN users u ON lh.user_id = u.id
-WHERE lh.status IN ('submitted', 'revision')
-ORDER BY lh.created_at DESC;
+.page-header {
+    margin-bottom: 20px;
+}
 
--- =============================================
--- SAMPLE PASSWORD: password123
--- Hash: $2y$10$92IXUNpkio0OVc4.7lChCOYz6TtxMQJqhN8/LewY5YmNrjsnqCnma
--- =============================================
+.page-header h1 {
+    margin: 0;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.stat-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 14px;
+    box-shadow: 0 8px 18px rgba(15,23,42,0.06);
+}
+
+.stat-card span {
+    display: block;
+    color: #6b7280;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.stat-card strong {
+    font-size: 28px;
+}
+
+.panel {
+    background: #fff;
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 8px 18px rgba(15,23,42,0.06);
+    margin-bottom: 20px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.form-grid .full {
+    grid-column: 1 / -1;
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.table th,
+.table td {
+    border: 1px solid #e5e7eb;
+    padding: 10px;
+    vertical-align: top;
+    text-align: left;
+}
+
+.table th {
+    background: #f9fafb;
+}
+
+.inline-form {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.inline-form select {
+    width: auto;
+    min-width: 150px;
+}
+
+.btn {
+    display: inline-block;
+    background: #10b981;
+    color: #fff;
+    text-decoration: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.alert {
+    padding: 12px 14px;
+    border-radius: 10px;
+    margin-bottom: 18px;
+}
+
+.alert.success {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+}
+
+.error {
+    color: #b91c1c;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 900px) {
+    .app-shell {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+    }
+
+    .content {
+        padding: 18px;
+    }
+}

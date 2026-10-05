@@ -1,0 +1,169 @@
+<?php
+session_start();
+
+function appConfig(): array
+{
+    return require __DIR__ . '/config.php';
+}
+
+function currentUser(PDO $pdo): ?array
+{
+    if (!isset($_SESSION['user_id'])) {
+        return null;
+    }
+
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id LIMIT 1');
+    $stmt->execute(['id' => $_SESSION['user_id']]);
+    $user = $stmt->fetch();
+
+    return $user ?: null;
+}
+
+function isLoggedIn(): bool
+{
+    return isset($_SESSION['user_id']);
+}
+
+function redirect(string $path): void
+{
+    header('Location: ' . $path);
+    exit;
+}
+
+function roleLabel(string $role): string
+{
+    $labels = [
+        'admin' => 'Admin',
+        'atasan' => 'Atasan',
+        'pegawai' => 'Pegawai',
+    ];
+
+    return $labels[$role] ?? ucfirst($role);
+}
+
+function getUserByEmail(PDO $pdo, string $email): ?array
+{
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE email = :email LIMIT 1');
+    $stmt->execute(['email' => trim($email)]);
+    return $stmt->fetch() ?: null;
+}
+
+function getUserById(PDO $pdo, int $userId): ?array
+{
+    $stmt = $pdo->prepare('SELECT * FROM users WHERE id = :id LIMIT 1');
+    $stmt->execute(['id' => $userId]);
+    return $stmt->fetch() ?: null;
+}
+
+function getMonthlyReportData(PDO $pdo, int $userId, int $month, int $year): array
+{
+    $start = sprintf('%d-%02d-01', $year, $month);
+    $end = date('Y-m-t', strtotime($start));
+
+    $stmt = $pdo->prepare('
+        SELECT lh.id, lh.tanggal, lh.judul, lh.status, lh.catatan_atasan, lh.deskripsi
+        FROM laporan_harian lh
+        WHERE lh.user_id = :user_id
+          AND lh.tanggal BETWEEN :start AND :end
+        ORDER BY lh.tanggal ASC
+    ');
+    $stmt->execute(['user_id' => $userId, 'start' => $start, 'end' => $end]);
+    $reports = $stmt->fetchAll();
+
+    $detailList = [];
+    foreach ($reports as $row) {
+        $stmtDetail = $pdo->prepare('SELECT kegiatan, target, hasil, waktu_mulai, waktu_selesai FROM laporan_detail WHERE laporan_id = :laporan_id');
+        $stmtDetail->execute(['laporan_id' => $row['id']]);
+        $detailList[$row['id']] = $stmtDetail->fetchAll();
+    }
+
+    $user = getUserById($pdo, $userId);
+
+    return [
+        'user' => $user,
+        'reports' => $reports,
+        'details' => $detailList,
+    ];
+}
+
+function monthName(int $month): string
+{
+    $months = [
+        1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+        5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+        9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+    ];
+
+    return $months[$month] ?? 'Bulan';
+}
+
+function generatePdfForUser(PDO $pdo, int $userId, int $month, int $year): string
+{
+    $data = getMonthlyReportData($pdo, $userId, $month, $year);
+    $user = $data['user'];
+    $reports = $data['reports'];
+
+    $html = '<!doctype html><html><head><meta charset="utf-8"><title>Rekap Bulanan</title>';
+    $html .= '<style>';
+    $html .= 'body { font-family: Arial, sans-serif; font-size: 12px; color: #222; }';
+    $html .= 'table { width: 100%; border-collapse: collapse; margin-top: 18px; }';
+    $html .= 'th, td { border: 1px solid #ccc; padding: 8px; text-align: left; vertical-align: top; }';
+    $html .= 'th { background: #f3f4f6; }';
+    $html .= '.title { font-size: 20px; font-weight: bold; margin-bottom: 10px; }';
+    $html .= '.meta { margin-bottom: 16px; line-height: 1.8; }';
+    $html .= '.summary { margin-top: 20px; }';
+    $html .= '</style></head><body>';
+    $html .= '<div class="title">REKAPAN LAPORAN KEGIATAN BULANAN</div>';
+    $html .= '<div class="meta">';
+    $html .= '<div><strong>Nama:</strong> ' . htmlspecialchars($user['nama']) . '</div>';
+    $html .= '<div><strong>NIP:</strong> ' . htmlspecialchars($user['nip']) . '</div>';
+    $html .= '<div><strong>Periode:</strong> ' . monthName($month) . ' ' . $year . '</div>';
+    $html .= '</div>';
+
+    $html .= '<div class="summary"><strong>Jumlah laporan:</strong> ' . count($reports) . '</div>';
+
+    $html .= '<table>';
+    $html .= '<thead><tr><th>Tanggal</th><th>Judul</th><th>Detail Kegiatan</th><th>Status</th></tr></thead><tbody>';
+
+    if (count($reports) === 0) {
+        $html .= '<tr><td colspan="4">Tidak ada laporan pada periode ini.</td></tr>';
+    }
+
+    foreach ($reports as $report) {
+        $items = $data['details'][$report['id']] ?? [];
+        $detailText = '';
+        foreach ($items as $item) {
+            $detailText .= '- ' . htmlspecialchars($item['kegiatan']) . '<br>';
+            if (!empty($item['target'])) {
+                $detailText .= 'Target: ' . htmlspecialchars($item['target']) . '<br>';
+            }
+            if (!empty($item['hasil'])) {
+                $detailText .= 'Hasil: ' . htmlspecialchars($item['hasil']) . '<br>';
+            }
+        }
+
+        $html .= '<tr>';
+        $html .= '<td>' . htmlspecialchars($report['tanggal']) . '</td>';
+        $html .= '<td>' . htmlspecialchars($report['judul'] ?? '-') . '</td>';
+        $html .= '<td>' . $detailText . '</td>';
+        $html .= '<td>' . htmlspecialchars($report['status']) . '</td>';
+        $html .= '</tr>';
+    }
+
+    $html .= '</tbody></table>';
+    $html .= '</body></html>';
+
+    return $html;
+}
+
+function requireRole(PDO $pdo, array $allowedRoles): void
+{
+    if (!isLoggedIn()) {
+        redirect('index.php');
+    }
+
+    $user = currentUser($pdo);
+    if (!$user || !in_array($user['role'], $allowedRoles, true)) {
+        redirect('index.php?page=dashboard');
+    }
+}
